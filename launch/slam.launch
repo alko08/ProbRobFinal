@@ -19,6 +19,6 @@
 
     <!-- Launch RViz for visualization -->
     <group ns="rviz">
-        <node pkg="rviz" type="rviz" name="rviz" args="-d $(find Vanessa_Alex_TurbleBot)/rviz/slam_config.rviz" />
+        <node pkg="rviz" type="rviz" name="rviz" args="-d $(find Vanessa_Alex_TurtleBot)/rviz/slam_config.rviz" />
     </group>
 </launch>
