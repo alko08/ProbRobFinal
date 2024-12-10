@@ -11,6 +11,7 @@ class SlamManager:
 		rospy.Subscriber('/slam_method', String, self.slam_method_callback)
 		
 		self.launch = roslaunch.scriptapi.ROSLaunch()
+		self.launch.start()
 		self.process = None
 		self.start_slam(self.slam_method)
 
@@ -21,7 +22,7 @@ class SlamManager:
 		if new_method != self.slam_method:
 			rospy.loginfo(f"Changing SLAM method from {self.slam_method} to {new_method}")
 			self.slam_method = new_method
-			self.start_slam(selfslam_method)
+			self.start_slam(self.slam_method)
 		else:
 			rospy.loginfo(f"Received {new_method} but was already using it for SLAM.")
 
@@ -36,10 +37,11 @@ class SlamManager:
 		# Set the SLAM method argument
 		uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
 		roslaunch.configure_logging(uuid)
-		node_args = [(roslaunch.rlutil.resolve_launch_arguments([package, executable])[0], {'slam_methods': slam_method})]
-		self.process = self.launch.launch(roslaunch.Node(package, executable, args=node_args))
+		launch_file = roslaunch.rlutil.resolve_launch_arguments([package, executable])[0]
+		args = {'slam_methods':slam_method}
 		rospy.loginfo(f"Starting SLAM method: {slam_method}")
-		self.launch.start()
+		self.process = self.launch.launch(roslaunch.Node(package, executable, output="screen", args=f"slam_methods:={slam_method}"))
+		
 	def shutdown(self):
 		if self.launch:
 			rospy.loginfo("Shutting down SLAM manager")
