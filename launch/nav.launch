@@ -2,6 +2,8 @@
     <arg name="teleop" default="False" />
     <arg name="Gazebo" default="True" />
     <arg name="slam_toolbox" default="True" />
+    
+    <!--<param name="use_sim_time" value="false"/>-->
 
     <!-- turtlebot3_teleop -->
     <group if="$(arg teleop)">
@@ -22,7 +24,7 @@
 
     <!-- turtlebot3_navigation -->
     <include file="$(find turtlebot3_navigation)/launch/turtlebot3_navigation.launch" >
-        <arg name="map_file" value="$(find vanessa_alex)/maps/map.yaml" />
+        <arg name="map_file" value="$(find vanessa_alex)/maps/map_gmapping.yaml" />
     </include>
     
 </launch>
