@@ -19,7 +19,8 @@
 		<include file="$(find turtlebot3_gazebo)/launch/turtlebot3_house.launch" />
 	</group>
 
-	<!-- <include file="$(find turtlebot3_navigation)/launch/turtlebot3_navigation.launch" /> -->
+	<!--<include file="$(find turtlebot3_navigation)/launch/turtlebot3_navigation.launch">-->
+		<!--<arg name="map_file" value="$(find vanessa_alex)/maps/map.yaml" />-->
 	<include file="$(find turtlebot3_slam)/launch/turtlebot3_slam.launch">
 		<arg name="slam_methods" value="gmapping"/>
 	</include>
