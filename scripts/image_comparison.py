@@ -1,88 +1,69 @@
+# Import necessary libraries
 import cv2
 import numpy as np
 from skimage.metrics import structural_similarity as ssim
-from PIL import Image
+from tensorflow.keras.applications.vgg16 import VGG16, preprocess_input
+from tensorflow.keras.preprocessing import image
+from tensorflow.keras.models import Model
+from scipy.spatial.distance import cosine
 
-def load_map(file_path):
-    """
-    Load a map image from the given file path.
-    If the file is a PGM, it will be converted to PNG using Pillow.
+# Function to calculate SSIM
+def calculate_ssim(imageA, imageB):
+    # Resize the smaller image to match the larger image's dimensions
+    if imageA.shape[:2] != imageB.shape[:2]:
+        heightA, widthA = imageA.shape[:2]
+        heightB, widthB = imageB.shape[:2]
+        
+        if heightA * widthA < heightB * widthB:
+            imageA = cv2.resize(imageA, (widthB, heightB))
+        else:
+            imageB = cv2.resize(imageB, (widthA, heightA))
+
+    # Convert images to grayscale
+    grayA = cv2.cvtColor(imageA, cv2.COLOR_BGR2GRAY)
+    grayB = cv2.cvtColor(imageB, cv2.COLOR_BGR2GRAY)
     
-    Args:
-        file_path (str): Path to the map image.
-    
-    Returns:
-        numpy.ndarray: Grayscale image array of the map.
-    """
-    # Check if the file is a PGM file and convert
-    if file_path.lower().endswith('.pgm'):
-        with Image.open(file_path) as img:
-            converted_path = file_path.replace('.pgm', '.png')
-            img.save(converted_path)
-            file_path = converted_path
-    
-    # Load the image using OpenCV
-    map_image = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
-    if map_image is None:
-        raise ValueError(f"Failed to load image at {file_path}")
-    return map_image
-
-def resize_maps(map1, map2):
-    """
-    Resize the maps to ensure they have the same dimensions.
-    Args:
-        map1 (numpy.ndarray): First map image.
-        map2 (numpy.ndarray): Second map image.
-    Returns:
-        tuple: Resized map1 and map2.
-    """
-    height, width = map1.shape
-    resized_map2 = cv2.resize(map2, (width, height), interpolation=cv2.INTER_AREA)
-    return map1, resized_map2
-
-def compute_error(map1, map2):
-    """
-    Compute the error score between two maps.
-    Args:
-        map1 (numpy.ndarray): First map image.
-        map2 (numpy.ndarray): Second map image.
-    Returns:
-        float: Error score based on Mean Squared Error (MSE).
-    """
-    mse = np.mean((map1.astype("float") - map2.astype("float")) ** 2)
-    return mse
-
-def compute_accuracy(map, ground_truth):
-    """
-    Compute the accuracy score of a map compared to a ground truth map.
-    Args:
-        map (numpy.ndarray): Map image.
-        ground_truth (numpy.ndarray): Ground truth map image.
-    Returns:
-        float: Accuracy score based on Structural Similarity Index (SSIM).
-    """
-    score, _ = ssim(map, ground_truth, full=True)
+    # Compute SSIM between the two images
+    score, _ = ssim(grayA, grayB, full=True)
     return score
 
-if __name__ == "__main__":
-    # File paths for the maps and ground truth
-    map1_path = "path_to_map1.png"
-    map2_path = "path_to_map2.png"
-    ground_truth_path = "path_to_ground_truth.png"
+# Function to extract features using VGG16 and calculate cosine similarity
+def calculate_feature_similarity(image_path1, image_path2):
+    # Load pre-trained VGG16 model
+    base_model = VGG16(weights='imagenet', include_top=False)
+    model = Model(inputs=base_model.input, outputs=base_model.get_layer('block5_pool').output)
     
-    # Load images
-    map1 = load_map(map1_path)
-    map2 = load_map(map2_path)
-    ground_truth = load_map(ground_truth_path)
+    # Function to preprocess image for VGG16
+    def preprocess_image(image_path):
+        img = image.load_img(image_path, target_size=(224, 224))
+        img_data = image.img_to_array(img)
+        img_data = np.expand_dims(img_data, axis=0)
+        img_data = preprocess_input(img_data)
+        return img_data
     
-    # Resize maps to match dimensions
-    map1, map2 = resize_maps(map1, map2)
-    map1, ground_truth = resize_maps(map1, ground_truth)
+    # Preprocess the two images
+    img1 = preprocess_image(image_path1)
+    img2 = preprocess_image(image_path2)
     
-    # Compute metrics
-    error_score = compute_error(map1, map2)
-    accuracy_score = compute_accuracy(map1, ground_truth)
+    # Extract features
+    features_img1 = model.predict(img1)
+    features_img2 = model.predict(img2)
     
-    # Print results
-    print(f"Error Score (MSE) between map1 and map2: {error_score:.4f}")
-    print(f"Accuracy Score (SSIM) of map1 to ground truth: {accuracy_score:.4f}")
+    # Flatten features and calculate cosine similarity
+    features_img1 = features_img1.flatten()
+    features_img2 = features_img2.flatten()
+    similarity = 1 - cosine(features_img1, features_img2)
+    
+    return similarity
+
+# Load sample images
+imageA = cv2.imread('maps/gmapping_map_final.pgm')
+imageB = cv2.imread('maps/karto_map_final.pgm')
+
+# Calculate SSIM
+ssim_score = calculate_ssim(imageA, imageB)
+print(f"SSIM score: {ssim_score}")
+
+# Calculate feature-based similarity using VGG16
+feature_similarity = calculate_feature_similarity('maps/gmapping_map_final.pgm', 'maps/karto_map_final.pgm')
+print(f"Feature-based similarity (Cosine similarity): {feature_similarity}")
