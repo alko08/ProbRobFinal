@@ -6,6 +6,7 @@ from tensorflow.keras.applications.vgg16 import VGG16, preprocess_input
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.models import Model
 from scipy.spatial.distance import cosine
+import sys
 
 # Function to calculate SSIM
 def calculate_ssim(imageA, imageB):
@@ -22,10 +23,16 @@ def calculate_ssim(imageA, imageB):
     # Convert images to grayscale
     grayA = cv2.cvtColor(imageA, cv2.COLOR_BGR2GRAY)
     grayB = cv2.cvtColor(imageB, cv2.COLOR_BGR2GRAY)
+
+    cv2.imshow('Gmapping', grayA)
+    cv2.waitKey()
+    cv2.imshow('Karto', grayB)
+    cv2.waitKey()
     
     # Compute SSIM between the two images
-    score, _ = ssim(grayA, grayB, full=True)
-    return score
+    # score, _ = ssim(grayA, grayB, full=True)
+    score, full_sim_image = ssim(grayA, grayB, full=True)
+    return score, full_sim_image
 
 # Function to extract features using VGG16 and calculate cosine similarity
 def calculate_feature_similarity(image_path1, image_path2):
@@ -57,13 +64,19 @@ def calculate_feature_similarity(image_path1, image_path2):
     return similarity
 
 # Load sample images
-imageA = cv2.imread('maps/gmapping_map_final.pgm')
-imageB = cv2.imread('maps/karto_map_final.pgm')
+# imageA = cv2.imread('maps/gmapping_map_final.pgm')
+# imageB = cv2.imread('maps/karto_map_final.pgm')
+imagePathA = sys.argv[1]
+imagePathB = sys.argv[2]
+imageA = cv2.imread(imagePathA)
+imageB = cv2.imread(imagePathB)
 
 # Calculate SSIM
-ssim_score = calculate_ssim(imageA, imageB)
+ssim_score, full_sim_image = calculate_ssim(imageA, imageB)
 print(f"SSIM score: {ssim_score}")
+cv2.imshow('Learned Similarity Map', full_sim_image)
 
 # Calculate feature-based similarity using VGG16
-feature_similarity = calculate_feature_similarity('maps/gmapping_map_final.pgm', 'maps/karto_map_final.pgm')
+feature_similarity = calculate_feature_similarity(imagePathA, imagePathB)
 print(f"Feature-based similarity (Cosine similarity): {feature_similarity}")
+cv2.waitKey()
