@@ -7,9 +7,10 @@ from tensorflow.keras.preprocessing import image
 from tensorflow.keras.models import Model
 from scipy.spatial.distance import cosine
 import sys
+import os
 
 # Function to calculate SSIM
-def calculate_ssim(imageA, imageB):
+def calculate_ssim(imageA, imageB, window_name_A, window_name_B):
     # Resize the smaller image to match the larger image's dimensions
     if imageA.shape[:2] != imageB.shape[:2]:
         heightA, widthA = imageA.shape[:2]
@@ -24,9 +25,9 @@ def calculate_ssim(imageA, imageB):
     grayA = cv2.cvtColor(imageA, cv2.COLOR_BGR2GRAY)
     grayB = cv2.cvtColor(imageB, cv2.COLOR_BGR2GRAY)
 
-    cv2.imshow('Gmapping', grayA)
+    cv2.imshow(window_name_A, grayA)
     cv2.waitKey()
-    cv2.imshow('Karto', grayB)
+    cv2.imshow(window_name_B, grayB)
     cv2.waitKey()
     
     # Compute SSIM between the two images
@@ -63,16 +64,15 @@ def calculate_feature_similarity(image_path1, image_path2):
     
     return similarity
 
-# Load sample images
-# imageA = cv2.imread('maps/gmapping_map_final.pgm')
-# imageB = cv2.imread('maps/karto_map_final.pgm')
 imagePathA = sys.argv[1]
 imagePathB = sys.argv[2]
 imageA = cv2.imread(imagePathA)
 imageB = cv2.imread(imagePathB)
+window_name_A = os.path.splitext(os.path.basename(imagePathA))[0]
+window_name_B = os.path.splitext(os.path.basename(imagePathB))[0]
 
 # Calculate SSIM
-ssim_score, full_sim_image = calculate_ssim(imageA, imageB)
+ssim_score, full_sim_image = calculate_ssim(imageA, imageB, window_name_A, window_name_B)
 print(f"SSIM score: {ssim_score}")
 cv2.imshow('Learned Similarity Map', full_sim_image)
 
