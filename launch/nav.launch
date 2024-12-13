@@ -24,7 +24,7 @@
 
     <!-- turtlebot3_navigation -->
     <include file="$(find turtlebot3_navigation)/launch/turtlebot3_navigation.launch" >
-        <arg name="map_file" value="$(find vanessa_alex)/maps/map_gmapping.yaml" />
+        <arg name="map_file" value="$(find vanessa_alex)/maps/hector_map_fail.yaml" />
     </include>
     
 </launch>

@@ -18,8 +18,7 @@ import time
 class Explore:
 
     def __init__(self):
-        """ Initialize environment
-        """
+        """ Initialize environment """
         # Initialize rate:
         self.rate = rospy.Rate(1)
 
@@ -33,41 +32,49 @@ class Explore:
         self.completion = 0
 
         # Initialize subscribers:
-        self.map = OccupancyGrid()
+        self.map = None
+        self.resolution = None
+        self.origin_x = None
+        self.origin_y = None
+        self.map_width = None
+        self.map_height = None
         self.sub_map = rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
         self.count = 0
-        time.sleep(8)
-
+        rospy.sleep(2)
 
     def map_callback(self, data):
         """ Callback function for map subscriber.
         Subscribes to /map to get the OccupancyGrid of the map.
         """
+        self.map = data.data
+        self.resolution = data.info.resolution
+        self.origin_x = data.info.origin.position.x
+        self.origin_y = data.info.origin.position.y
+        self.map_width = data.info.width
+        self.map_height = data.info.height
+
         valid = False
 
-        while valid is False:
-            map_size = randrange(len(data.data))
-            self.map = data.data[map_size]
+        while not valid:
+            map_size = randrange(len(self.map))
 
-            edges = self.check_neighbors(data, map_size)
-            if self.map != -1 and self.map <= 0.2 and edges is True:
-                valid = True
-            
-        row = map_size / 384
-        col = map_size % 384
+            if self.map[map_size] == -1:
+                edges = self.check_neighbors(data, map_size)
+                if edges:
+                    valid = True
 
-        self.x = col * 0.05 - 10  # column * resolution + origin_x
-        self.y = row * 0.05 - 10  # row * resolution + origin_x
-        
+        col = map_size % self.map_width
+        row = map_size // self.map_width
+
+        self.x = col * self.resolution + self.origin_x
+        self.y = row * self.resolution + self.origin_y
+
         if self.completion % 2 == 0:
             self.completion += 1
-            # Start the robot moving toward the goal
             self.set_goal()
-    
 
     def set_goal(self):
-        """ Set goal position for move_base.
-        """
+        """ Set goal position for move_base. """
         rospy.logdebug("Setting goal")
 
         # Create goal:
@@ -79,50 +86,45 @@ class Explore:
         goal.target_pose.pose.position.x = self.x
         goal.target_pose.pose.position.y = self.y
         goal.target_pose.pose.orientation.w = 1.0
+
         rospy.logdebug(f"goal: {goal.target_pose.pose.position.x, goal.target_pose.pose.position.y}")
         self.move_base.send_goal(goal, self.goal_status)
 
-
     def goal_status(self, status, result):
-        """ Check the status of a goal - goal reached, aborted,
-        or rejected.
-        """
+        """ Check the status of a goal - goal reached, aborted, or rejected. """
         self.completion += 1
 
         # Goal reached
-        if status == 3:
+        if status == GoalStatus.SUCCEEDED:
             rospy.loginfo("Goal succeeded")
 
         # Goal aborted
-        if status == 4:
+        elif status == GoalStatus.ABORTED:
             rospy.loginfo("Goal aborted")
 
         # Goal rejected
-        if status == 5:
+        elif status == GoalStatus.REJECTED:
             rospy.loginfo("Goal rejected")
 
-
     def check_neighbors(self, data, map_size):
-        """ Checks neighbors for random points on the map.
-        """
+        """ Checks neighbors for random points on the map. """
         unknowns = 0
         obstacles = 0
 
-        for x in range(-3, 4):
-            for y in range(-3, 4):
-                row = x * 384 + y
+        for dx in range(-3, 4):
+            for dy in range(-3, 4):
+                neighbor_idx = map_size + dx * self.map_width + dy
                 try:
-                    if data.data[map_size + row] == -1:
+                    if data.data[neighbor_idx] == -1:
                         unknowns += 1
-                    elif data.data[map_size + row] > 0.65:
+                    elif data.data[neighbor_idx] > 65:  # Adjusted threshold for obstacles
                         obstacles += 1
                 except IndexError:
                     pass
+
         if unknowns > 0 and obstacles < 2:
             return True
-        else:
-            return False
-
+        return False
 
 def main():
     """ The main() function """
@@ -130,9 +132,8 @@ def main():
     Explore()
     rospy.spin()
 
-
 if __name__ == '__main__':
     try:
         main()
-    except:
-        rospy.ROSInterruptException
+    except rospy.ROSInterruptException:
+        pass

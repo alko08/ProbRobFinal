@@ -1,6 +1,4 @@
 <launch>
-
-  <arg name="rviz_arg" default="-d $(find vanessa_alex)/rviz/explore.rviz" />
   <arg name="slam_methods" default="gmapping" doc="slam type [gmapping, hector, karto]" />
 
     <!-- Turtlebot3 Gazebo -->
@@ -16,14 +14,14 @@
 
     <!-- Turtlebot3 SLAM -->
   <include file="$(find turtlebot3_slam)/launch/turtlebot3_slam.launch">
-    <arg name="slam_methods" value="gmapping" />
+    <arg name="slam_methods" value="$(arg slam_methods)"/>
     <arg name="open_rviz"    value="false" />
   </include>
 
   <!-- Node for autonomous mapping -->
-  <node name="explore" pkg="vanessa_alex" type="explore" output="screen"/>
+  <node name="explore" pkg="vanessa_alex" type="explore.py" output="screen"/>
 
     <!-- Rviz -->
-  <node name="rviz" pkg="rviz" type="rviz" args="$(arg rviz_arg)"/>
+  <node pkg="rviz" type="rviz" name="rviz" required="true" args="-d $(find turtlebot3_navigation)/rviz/turtlebot3_navigation.rviz"/>
     
 </launch>
